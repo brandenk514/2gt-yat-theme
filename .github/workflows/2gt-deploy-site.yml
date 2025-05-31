@@ -1,0 +1,57 @@
+name: Build and Deploy 2GT Jekyll Site
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '2.7'
+
+    - name: Install dependencies
+      run: bundle install
+
+    - name: Build Jekyll site
+      run: JEKYLL_ENV=production bundle exec jekyll b
+
+    - name: Login to DockerHub
+      uses: docker/login-action@v3.3.0
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Get the branch or tag name
+      id: ref_name
+      run: |
+        if [[ "${GITHUB_REF}" == refs/heads/* ]]; then
+          echo "ref_name=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+        elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+          echo "ref_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+        else
+          echo "Invalid GITHUB_REF: ${GITHUB_REF}"
+          exit 1
+        fi
+
+    - name: Build Docker image
+      run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/2gt_website:latest -t ${{ secrets.DOCKERHUB_USERNAME }}/2gt_website:${{ env.ref_name }} .
+      env:
+        ref_name: ${{ env.ref_name }}
+
+    - name: Push Docker image
+      env:
+        ref_name: ${{ env.ref_name }}
+      run: |
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/2gt_website:${{ env.ref_name }}
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/2gt_website:latest
