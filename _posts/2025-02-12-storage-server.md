@@ -6,7 +6,7 @@ categories: markdown
 date: 2025-02-12
 author: 2GT_Rich
 banner:
-  image: /assets/images/2.png
+  image: /assets/images/post-pics/2.png
 tags: [storage]
 ---
 
