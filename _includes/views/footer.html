@@ -1,45 +1,50 @@
 <footer class="site-footer h-card">
-  <data class="u-url" href="{{ " /" | relative_url }}"></data>
+      <data class="u-url" href="{{ " /" | relative_url }}"></data>
 
-  <div class="wrapper">
-    <div class="site-footer-inner">
-      <div style="display: flex; align-items: center; justify-content: space-between;">
-        <div>
-          <ul style="display: flex; gap: 10px; list-style: none; padding: 10px; margin: 0;">
-            <li><a href="https://www.youtube.com/2guystek" target="_blank"><img src="/assets/images/icons/yt.png"
-                  alt="YouTube" width="36" height="36"></a></li>
-            <li><a href="https://bsky.app/profile/2guystek.tv" target="_blank"><img src="/assets/images/icons/bs.png"
-                  alt="Bluesky" width="36" height="36"></a></li>
-            <li><a href="https://facebook.com/2guystek" target="_blank"><img src="/assets/images/icons/fb.png"
-                  alt="Facebook" width="36" height="36"></a></li>
-            <li><a href="https://www.instagram.com/2guystek/?hl=en" target="_blank"><img
-                  src="/assets/images/icons/instagram.png" alt="Instagram" width="36" height="36"></a></li>
-            <li><a href="mailto:contact@2guystek.com"><img src="/assets/images/icons/mail.png" alt="Email" width="36"
-                  height="36"></a></li>
-            <li><a href="https://homelabgear.shop/"><img src="/assets/images/icons/hlg-logo-grey.png" alt="HLG Logo"
-                  width="36" height="36"></a></li>
-            <li><a href="https://discord.com/invite/5TcfBWBB7S"><img src="/assets/images/icons/discord.svg"
-                  alt="Discord" width="36" height="36"></a></li>
-            <li><a href="https://2guystek.buzzsprout.com/"><img src="/assets/images/icons/buzz.png" alt="Buzz"
-                  width="36" height="36"></a></li>
-          </ul>
-        </div>
-        <div>
-          {%- assign currentYear = 'now' | date: "%Y" -%}
-          {%- assign copyright = site.copyright
-          | replace: '{currentYear}', currentYear
-          | replace: '{author}', site.author
-          | replace: '(c)', '&copy;'
-          | replace: '(p)', '℗'
-          | replace: '(cleft)', '<span class="copyleft">&copy;</span>'
-          -%}
-          <div>{{ copyright }}</div>
-          <div>Powered by <a title="Jekyll is a simple, blog-aware, static site
-          generator." href="https://jekyllrb.com/">Jekyll</a> &amp; <a title="Yat, yet
-          another theme." href="https://github.com/jeffreytse/jekyll-theme-yat">Yat Theme</a></div>
-          <div class="footer-col rss-subscribe">Subscribe <a href="{{ " /feed.xml" | relative_url }}">via RSS</a></div>
-        </div>
+      <div class="wrapper">
+            <div class="site-footer-inner">
+                  <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                              <ul style="display: flex; gap: 10px; list-style: none; padding: 10px; margin: 0;">
+                                    <li><a href="https://www.youtube.com/2guystek" target="_blank"><img
+                                                      src="/assets/images/icons/yt.png" alt="YouTube" width="36"
+                                                      height="36"></a></li>
+                                    <li><a href="https://bsky.app/profile/2guystek.tv" target="_blank"><img
+                                                      src="/assets/images/icons/bs.png" alt="Bluesky" width="36"
+                                                      height="36"></a></li>
+                                    <li><a href="https://facebook.com/2guystek" target="_blank"><img
+                                                      src="/assets/images/icons/fb.png" alt="Facebook" width="36"
+                                                      height="36"></a></li>
+                                    <li><a href="https://www.instagram.com/2guystek/?hl=en" target="_blank"><img
+                                                      src="/assets/images/icons/instagram.png" alt="Instagram"
+                                                      width="36" height="36"></a></li>
+                                    <li><a href="mailto:contact@2guystek.com"><img src="/assets/images/icons/mail.png"
+                                                      alt="Email" width="36" height="36"></a></li>
+                                    <li><a href="https://homelabgear.shop/"><img
+                                                      src="/assets/images/icons/hlg-logo-grey.png" alt="HLG Logo"
+                                                      width="36" height="36"></a></li>
+                                    <li><a href="https://discord.com/invite/5TcfBWBB7S"><img
+                                                      src="/assets/images/icons/discord.svg" alt="Discord" width="36"
+                                                      height="36"></a></li>
+                                    <li><a href="https://2guystek.buzzsprout.com/"><img
+                                                      src="/assets/images/icons/buzz.png" alt="Buzz" width="36"
+                                                      height="36"></a></li>
+                              </ul>
+                        </div>
+                        <div>
+                              {%- assign currentYear = 'now' | date: "%Y" -%}
+                              {%- assign copyright = site.copyright
+                              | replace: '{currentYear}', currentYear
+                              | replace: '{author}', site.author
+                              | replace: '(c)', '&copy;'
+                              | replace: '(p)', '℗'
+                              | replace: '(cleft)', '<span class="copyleft">&copy;</span>'
+                              -%}
+                              <div>{{ copyright }}</div>
+                              <div>Powered by <a title="Jekyll is a simple, blog-aware, static site generator." href="https://jekyllrb.com/">Jekyll</a> &amp; <a title="Yat, yet another theme." href="https://github.com/jeffreytse/jekyll-theme-yat">Yat Theme</a></div>
+                              <div class="footer-col rss-subscribe">Subscribe <a href="{{ '/feed.xml' | relative_url }}">via RSS</a></div>
+                        </div>
+                  </div>
+            </div>
       </div>
-    </div>
-  </div>
 </footer>
