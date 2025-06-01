@@ -1,0 +1,968 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en"><generator uri="https://jekyllrb.com/" version="4.4.1">Jekyll</generator><link href="https://2guystek.tv/jekyll-theme-yat/feed.xml" rel="self" type="application/atom+xml" /><link href="https://2guystek.tv/jekyll-theme-yat/" rel="alternate" type="text/html" hreflang="en" /><updated>2025-06-01T21:24:47+00:00</updated><id>https://2guystek.tv/jekyll-theme-yat/feed.xml</id><subtitle>Welcome to the 2GuysTek!</subtitle><author><name>2GT_BK</name></author><entry><title type="html">Building My Own Storage Server - A DIY Journey</title><link href="https://2guystek.tv/jekyll-theme-yat/markdown/2025/02/12/storage-server.html" rel="alternate" type="text/html" title="Building My Own Storage Server - A DIY Journey" /><published>2025-02-12T00:00:00+00:00</published><updated>2025-02-12T00:00:00+00:00</updated><id>https://2guystek.tv/jekyll-theme-yat/markdown/2025/02/12/storage-server</id><content type="html" xml:base="https://2guystek.tv/jekyll-theme-yat/markdown/2025/02/12/storage-server.html"><![CDATA[<p><img src="//youtu.be/lPkQy5x_qDc" alt="" /></p>
+
+<p>There are some incredibly well-built storage platforms, like TrueNAS SCALE, that allow you to take your own hardware and turn it into a complete, turn-key storage solution. These platforms remove the complexity of building a storage server manually. I use TrueNAS SCALE for all things storage in my homelab, and it’s great. But this got me thinking—could I build my own complete storage system myself? What would that even look like? Let’s find out!</p>
+
+<h2 id="defining-the-features-of-a-diy-storage-server">Defining the Features of a DIY Storage Server</h2>
+
+<p>If I want to build a storage system that competes with solutions like <a href="https://www.truenas.com/">TrueNAS SCALE</a>, <a href="https://unraid.net/">Unraid</a>, or <a href="https://www.openmediavault.org/">OpenMediaVault</a>, it needs to have a solid feature set. Here’s what my storage server must include:</p>
+
+<ul>
+  <li><strong>File Serving</strong>: Support for both SMB (Windows) and NFS (Linux/Unix).</li>
+  <li><strong>Virtualization</strong>: Ability to run virtual machines (KVM/QEMU).</li>
+  <li><strong>Containerization</strong>: Support for running containers (Podman/Docker alternative).</li>
+  <li><strong>ZFS Support</strong>: Protection, snapshotting, and performance benefits.</li>
+  <li><strong>Hardware Monitoring</strong>: Ability to view system temps and sensor data.</li>
+  <li><strong>Web GUI</strong>: A graphical user interface for management.</li>
+</ul>
+
+<h2 id="choosing-the-operating-system">Choosing the Operating System</h2>
+
+<p>For my project, I need a Linux-based operating system. I have always been a heavy Debian/Ubuntu user, so naturally, I chose <strong>Ubuntu Server 24.04 LTS</strong> for its long-term support and security updates. While there are many Linux distributions available, Ubuntu has the right balance of stability and flexibility.</p>
+
+<h2 id="installing-key-software-packages">Installing Key Software Packages</h2>
+
+<p>Once the OS was installed, the next step was to install all the necessary software packages:</p>
+
+<ul>
+  <li><strong>Samba (SMB support)</strong>:
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>apt <span class="nb">install </span>samba <span class="nt">-y</span>
+</code></pre></div>    </div>
+  </li>
+  <li><strong>NFS Server (NFS support)</strong>:
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>apt <span class="nb">install </span>nfs-kernel-server <span class="nt">-y</span>
+</code></pre></div>    </div>
+  </li>
+  <li><strong>Virtualization tools (KVM/QEMU)</strong>:
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>apt <span class="nb">install </span>qemu-kvm virt-manager libvirt-clients bridge-utils libvirt-daemon-system virtinst <span class="nt">-y</span>
+</code></pre></div>    </div>
+  </li>
+  <li><strong>Containerization (Podman)</strong>:
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>apt <span class="nb">install </span>podman <span class="nt">-y</span>
+</code></pre></div>    </div>
+  </li>
+  <li><strong>ZFS Utilities</strong>:
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>apt <span class="nb">install </span>zfsutils-linux <span class="nt">-y</span>
+</code></pre></div>    </div>
+  </li>
+  <li><strong>Hardware Monitoring</strong>:
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>apt <span class="nb">install </span>lm-sensors <span class="nt">-y</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<p>To enable hardware monitoring, I ran <code class="language-plaintext highlighter-rouge">sensors-detect</code> and confirmed the configuration. Say ‘YES’ to every option until it completes.</p>
+
+<h2 id="selecting-a-web-gui-for-management">Selecting a Web GUI for Management</h2>
+
+<p>A storage platform must be easy to manage. Instead of using CLI for everything, I explored two main web-based management tools:</p>
+
+<ul>
+  <li><strong>Cockpit</strong>: A lightweight, modular server management tool with a modern interface.</li>
+  <li><strong>Webmin</strong>: A powerful but older tool with support for more services but lacking ZFS integration.</li>
+</ul>
+
+<p>Since my project relies on ZFS, I opted for <strong>Cockpit</strong>. I installed it with:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>apt <span class="nb">install </span>cockpit <span class="nt">-y</span>
+systemctl <span class="nb">enable</span> <span class="nt">--now</span> cockpit.socket
+</code></pre></div></div>
+
+<h2 id="installing-additional-cockpit-modules">Installing Additional Cockpit Modules</h2>
+
+<p>To extend Cockpit’s functionality, I installed additional modules:</p>
+
+<ul>
+  <li><strong>Cockpit Virtual Machines</strong>:
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>apt <span class="nb">install </span>cockpit-machines <span class="nt">-y</span>
+</code></pre></div>    </div>
+  </li>
+  <li><strong>Cockpit Podman Containers</strong>:
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>apt <span class="nb">install </span>cockpit-podman <span class="nt">-y</span>
+</code></pre></div>    </div>
+  </li>
+  <li><strong>Cockpit Diagnostic Reports</strong>:
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>apt <span class="nb">install </span>cockpit-sosreport <span class="nt">-y</span>
+</code></pre></div>    </div>
+  </li>
+  <li><strong>45Drives ZFS Manager</strong>:
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>git clone https://github.com/45drives/cockpit-zfs-manager.git
+<span class="nb">sudo cp</span> <span class="nt">-r</span> cockpit-zfs-manager/zfs /usr/share/cockpit
+</code></pre></div>    </div>
+  </li>
+  <li><strong>45Drives File Sharing</strong>:
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="nt">-sSL</span> https://repo.45drives.com/setup | <span class="nb">sudo </span>bash
+apt update
+apt <span class="nb">install </span>cockpit-file-sharing <span class="nt">-y</span>
+</code></pre></div>    </div>
+  </li>
+  <li><strong>45Drives Identities</strong>:
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>apt <span class="nb">install </span>cockpit-identities <span class="nt">-y</span>
+</code></pre></div>    </div>
+  </li>
+  <li><strong>45Drives Navigator</strong>:
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>apt <span class="nb">install </span>cockpit-navigator <span class="nt">-y</span>
+</code></pre></div>    </div>
+  </li>
+  <li><strong>Cockpit Podman Module</strong>:
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>apt <span class="nb">install </span>cockpit-podman <span class="nt">-y</span>
+</code></pre></div>    </div>
+  </li>
+  <li><strong>Cockpit LM-Sensors</strong>:
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>wget https://github.com/ocristopfer/cockpit-sensors/releases/latest/download/cockpit-sensors.tar.xz <span class="o">&amp;&amp;</span> <span class="se">\</span>
+<span class="nb">tar</span> <span class="nt">-xf</span> cockpit-sensors.tar.xz cockpit-sensors/dist <span class="o">&amp;&amp;</span> <span class="se">\</span>
+<span class="nb">mv </span>cockpit-sensors/dist /usr/share/cockpit/sensors <span class="o">&amp;&amp;</span> <span class="se">\</span>
+<span class="nb">rm</span> <span class="nt">-r</span> cockpit-sensors <span class="o">&amp;&amp;</span> <span class="se">\</span>
+<span class="nb">rm </span>cockpit-sensors.tar.xz
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h2 id="troubleshooting--challenges">Troubleshooting &amp; Challenges</h2>
+
+<ul>
+  <li><strong>RAID1 for Boot Drive</strong>: Creating a software RAID1 for Ubuntu’s boot disk turned out to be far more difficult than expected.</li>
+  <li><strong>Cockpit Software Updates Bug</strong>: The updates module failed with a <code class="language-plaintext highlighter-rouge">Cannot refresh cache whilst offline</code> error. The fix involved modifying the netplan configuration.</li>
+  <li><strong>Container Issues</strong>: Updating Podman caused conflicts, requiring manual intervention.</li>
+</ul>
+
+<h2 id="final-thoughts-is-a-diy-storage-server-worth-it">Final Thoughts: Is a DIY Storage Server Worth It?</h2>
+
+<p>Building this system from scratch was a great learning experience, but it reinforced my appreciation for turn-key solutions like TrueNAS SCALE and Unraid. Here’s what I learned:</p>
+
+<ul>
+  <li>Turn-key solutions exist for a reason. They save time and effort.</li>
+  <li>GUI management is still fragmented. Even with Cockpit, a truly unified experience isn’t possible.</li>
+  <li>Troubleshooting issues is time-consuming. Maintaining a DIY storage server requires constant attention.</li>
+</ul>
+
+<p>Would I recommend doing this yourself? If you enjoy tinkering and learning, absolutely. But if you just want a reliable storage solution without the headaches, stick to a purpose-built storage OS.</p>
+
+<h2 id="watch-the-full-build-video">Watch the Full Build Video!</h2>
+
+<p>If you want to see the entire journey, check out my YouTube channel <strong>2GuysTek</strong> where I document the full setup and troubleshooting process!</p>
+
+<p>What do you think? Have you built your own storage server? Let me know in the comments!</p>]]></content><author><name>2GT_Rich</name></author><category term="markdown" /><category term="storage" /><summary type="html"><![CDATA[]]></summary></entry><entry><title type="html">The Ultimate Storage Server Upgrade for 2025</title><link href="https://2guystek.tv/jekyll-theme-yat/2025/01/16/ultimate-storage-server.html" rel="alternate" type="text/html" title="The Ultimate Storage Server Upgrade for 2025" /><published>2025-01-16T00:00:00+00:00</published><updated>2025-01-16T00:00:00+00:00</updated><id>https://2guystek.tv/jekyll-theme-yat/2025/01/16/ultimate-storage-server</id><content type="html" xml:base="https://2guystek.tv/jekyll-theme-yat/2025/01/16/ultimate-storage-server.html"><![CDATA[<p><img src="//youtube.com/watch?v=ql-G2T2iDEE" alt="" /></p>
+
+<p>If you’ve been following 2GuysTek for any length of time, you know how much I enjoy unique and interesting servers in my homelab. From my first dual-node Supermicro server to the quad-node setup, I’ve always sought out hardware that brings something special to the table. This year is no different, as I’ve kicked off 2025 with a significant upgrade to my storage server, SuperSAN. Enter the Supermicro SSG-6029P-E1CR24L—a beast of a machine with some serious hidden tricks up its sleeve.</p>
+
+<h2 id="first-impressions-and-specs">First Impressions and Specs</h2>
+
+<p>At first glance, the server may not seem all that special. It’s a dual-socket Intel Xeon Gold 6130 system with 192GB of DDR4 ECC memory. But take a closer look, and you’ll find it has a secret weapon: 12 additional internal drive bays, bringing the total to 24 3.5″ bays in a 2U chassis. Add to that two 2.5″ SSD bays in the rear for OS storage, and you’ve got a truly unique setup.</p>
+
+<p>I picked up this server on eBay for $1,100 shipped. For that price, you get a chassis loaded with features, two CPUs, and a generous amount of ECC memory. If you’re looking for a similar deal, you can find the listing <a href="https://ebay.us/mByzAp">here</a>.</p>
+
+<h2 id="why-this-server">Why This Server?</h2>
+
+<p>There were a few key factors that made this server a must-have for my homelab:</p>
+
+<ul>
+  <li><strong>Massive Storage Capacity</strong>: 24 3.5″ drive bays in a 2U form factor.</li>
+  <li><strong>Modern Platform</strong>: Built on Intel’s Gen1 and Gen2 Scalable architecture.</li>
+  <li><strong>High-Speed Connectivity</strong>: Equipped with a Supermicro SIOM card featuring dual 25Gb SFP28 and dual 10Gb Base-T ports.</li>
+  <li><strong>Upgrade Potential</strong>: The Xeon Gold 6130 CPUs are great for storage duties, but there’s room for future CPU and RAM upgrades.</li>
+</ul>
+
+<p>With my older SuperSAN running on 9-year-old Intel Xeon E5-2680v4 CPUs, this was the perfect time for an upgrade. The new server offers more storage capacity, improved performance, and modern connectivity options.</p>
+
+<h2 id="design-and-build">Design and Build</h2>
+
+<p>The Supermicro SSG-6029P-E1CR24L is deeper than your average 2U server, measuring 34 inches in length. It’s designed for standard 19” racks, but be sure your cabinet can accommodate its depth. Here’s a quick rundown of the hardware:</p>
+
+<ul>
+  <li><strong>Front</strong>: 12 visible 3.5” drive bays.</li>
+  <li><strong>Hidden</strong>: 12 internal 3.5” bays.</li>
+  <li><strong>Rear</strong>: 2 hot-swap 2.5” SATA bays for OS drives.</li>
+  <li><strong>Networking</strong>: Supermicro SIOM with dual 25Gb SFP28 and dual 10Gb Base-T.</li>
+  <li><strong>Power</strong>: Dual Titanium 1600W PSUs (1000W at 120V).</li>
+  <li><strong>Mainboard</strong>: Supermicro X11DSC+, based on the Intel C621 chipset.</li>
+  <li><strong>CPUs</strong>: Dual Intel Xeon Gold 6130 (16 cores/32 threads each).</li>
+  <li><strong>RAM</strong>: 192GB of DDR4-2666 ECC, expandable to 6TB.</li>
+</ul>
+
+<h2 id="the-challenge-of-maintenance">The Challenge of Maintenance</h2>
+
+<p>Accessing the internals of this server is not for the faint of heart. The power distribution sits atop the mainboard, CPUs, and RAM, requiring the removal of PSUs, shrouds, airflow guides, and numerous power cables to reach the components. It took me about eight minutes—and several attempts—to fully expose the mainboard.</p>
+
+<p>While this design ensures efficient power distribution and cooling, it’s not ideal for those who need frequent access to internal components. Consider this if you’re thinking about purchasing one of these systems.</p>
+
+<h2 id="deployment-plans">Deployment Plans</h2>
+
+<p>This server will eventually replace SuperSAN as my primary storage system. Here’s the configuration plan:</p>
+
+<ul>
+  <li><strong>Storage</strong>: 24 x 7.68TB SAS3 SSDs, yielding roughly 169TB of usable space.</li>
+  <li><strong>OS Drives</strong>: 2 x 480GB Intel Datacenter SATA SSDs in a mirrored pair.</li>
+</ul>
+
+<p>For those considering similar builds, note that the Supermicro caddies do not support 2.5″ drives out of the box. I used 3D-printed brackets to adapt my SSDs, saving significant costs. You can find the STL files <a href="https://www.printables.com/">here</a>.</p>
+
+<h2 id="whats-next">What’s Next?</h2>
+
+<p>Before deploying this server in production, I plan to test it extensively. While TrueNAS SCALE is the leading contender for the OS, I’m also considering building a custom solution using Debian or Ubuntu with Cockpit. If you have suggestions, drop them in the comments below!</p>
+
+<p>And one last thing—this server needs a name! SuperSAN served me well, but it’s time for a new moniker. Got any ideas? Let me know!</p>
+
+<h2 id="final-thoughts">Final Thoughts</h2>
+
+<p>The Supermicro SSG-6029P-E1CR24L is a fascinating piece of hardware. Its unique design, modern platform, and incredible storage capacity make it a standout choice for homelabbers and IT pros. While maintenance isn’t straightforward, the benefits far outweigh the challenges for those who love tinkering with enterprise-grade equipment.</p>
+
+<p>If you’re interested in building your own version of this server, check out the links in the description. And don’t forget to subscribe to 2GuysTek for more homelab content!</p>
+
+<p>Thanks for reading, and happy homelabbing!</p>]]></content><author><name>2GT_Rich</name></author><category term="storage" /><category term="hardware" /><summary type="html"><![CDATA[]]></summary></entry><entry><title type="html">Proxmox Datacenter Manager: A Game-Changer for PVE Users</title><link href="https://2guystek.tv/jekyll-theme-yat/2024/12/26/pdm.html" rel="alternate" type="text/html" title="Proxmox Datacenter Manager: A Game-Changer for PVE Users" /><published>2024-12-26T00:00:00+00:00</published><updated>2024-12-26T00:00:00+00:00</updated><id>https://2guystek.tv/jekyll-theme-yat/2024/12/26/pdm</id><content type="html" xml:base="https://2guystek.tv/jekyll-theme-yat/2024/12/26/pdm.html"><![CDATA[<p><img src="//youtube.com/watch?v=rsguS0hw1PI" alt="" /></p>
+
+<h1 id="big-news-from-proxmox-server-solutions">Big News from Proxmox Server Solutions</h1>
+
+<p>Proxmox Server Solutions surprised us all with an exciting announcement: the alpha release of Proxmox Datacenter Manager (PDM). Designed to provide a centralized overview of nodes and clusters, PDM enables basic management tasks—such as migrating virtual guests—without cluster network requirements. This feels like a significant step forward for Proxmox, particularly for those of us accustomed to centralized management solutions like VMware’s vCenter. In this blog post, we’ll dive into what PDM offers, explore its features, and guide you through setting it up using an LXC container.</p>
+
+<h2 id="what-is-proxmox-datacenter-manager-pdm">What is Proxmox Datacenter Manager (PDM)?</h2>
+
+<p>PDM is a fresh approach to managing your Proxmox Virtual Environment (PVE) infrastructure. It consolidates management across nodes and clusters into one interface, giving users a high-level overview of their systems while offering tools for basic administrative tasks. From its sleek dashboard to detailed workload insights, PDM is clearly designed with usability and scalability in mind. While this is still an alpha release, it hints at Proxmox’s vision of centralizing its ecosystem for a more user-friendly experience.</p>
+
+<h2 id="first-look-pdm-dashboard-and-features">First Look: PDM Dashboard and Features</h2>
+
+<p>Upon logging into PDM, you’re greeted by a clean and visually rich dashboard. Here’s what stands out:</p>
+
+<h3 id="key-dashboard-components">Key Dashboard Components</h3>
+
+<ul>
+  <li><strong>Status Cards</strong>: Provide a snapshot of your remotes, nodes, running/stopped VMs, and LXC containers.</li>
+  <li><strong>Performance Metrics</strong>: Displays the highest CPU and memory usage across VMs and nodes.</li>
+  <li><strong>Theme Options</strong>: Choose between desktop and crisp themes with light, dark, and dynamic modes.</li>
+</ul>
+
+<h3 id="feature-highlights">Feature Highlights</h3>
+
+<ul>
+  <li><strong>Configuration Management</strong>: Manage time zones, DNS settings, and network interfaces.</li>
+  <li><strong>User and Access Control</strong>: Add users, set up two-factor authentication (2FA), and manage certificates, including support for Let’s Encrypt.</li>
+  <li><strong>Remote Management</strong>: Add and manage Proxmox nodes or clusters.</li>
+  <li><strong>System Insights</strong>: Access syslog, tasks, and repositories for updates.</li>
+  <li><strong>Workload Details</strong>: View detailed statistics, resource utilization, and historical data for individual workloads.</li>
+</ul>
+
+<h2 id="setting-up-proxmox-datacenter-manager">Setting Up Proxmox Datacenter Manager</h2>
+
+<p>You can deploy PDM either via an ISO or, as we’ll demonstrate, using an LXC container. Follow these steps to get started.</p>
+
+<h3 id="step-1-create-the-lxc-container">Step 1: Create the LXC Container</h3>
+
+<ol>
+  <li><strong>Create Container</strong>: In your PVE host, click Create CT and set the hostname and root password.</li>
+  <li><strong>Select Template</strong>: Use the Debian Bookworm template, as recommended by Proxmox.</li>
+  <li><strong>Allocate Resources</strong>:
+    <ul>
+      <li><strong>Storage</strong>: At least 8GB (we suggest 16GB).</li>
+      <li><strong>CPU</strong>: Minimum 2 cores (use 4 for better performance).</li>
+      <li><strong>RAM</strong>: Minimum 2GB (we recommend 4GB).</li>
+    </ul>
+  </li>
+  <li><strong>Network Configuration</strong>: Assign the container to your desired network. For testing purposes, DHCP works well.</li>
+</ol>
+
+<h3 id="step-2-prepare-the-container">Step 2: Prepare the Container</h3>
+
+<ol>
+  <li><strong>Update the OS</strong>: Run the following command to update and clean up the system:
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>apt update <span class="o">&amp;&amp;</span> apt dist-upgrade <span class="nt">-y</span> <span class="o">&amp;&amp;</span> apt autoremove <span class="nt">-y</span> <span class="o">&amp;&amp;</span> apt autoclean <span class="nt">-y</span> <span class="o">&amp;&amp;</span> reboot
+</code></pre></div>    </div>
+  </li>
+  <li><strong>Add PDM Repository</strong>: Add the PDM apt repository.
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">echo</span> <span class="s1">'deb http://download.proxmox.com/debian/pdm bookworm pdm-test'</span> <span class="o">&gt;</span>/etc/apt/sources.list.d/pdm-test.list
+</code></pre></div>    </div>
+  </li>
+  <li><strong>Add the PDM Release Key</strong>: Download the release key.
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>wget https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg <span class="nt">-O</span> /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg
+</code></pre></div>    </div>
+  </li>
+  <li><strong>Install PDM</strong>: Update your package lists and install PDM:
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>apt update <span class="o">&amp;&amp;</span> apt <span class="nb">install </span>proxmox-datacenter-manager <span class="nt">-y</span>
+</code></pre></div>    </div>
+  </li>
+</ol>
+
+<h3 id="step-3-access-pdm">Step 3: Access PDM</h3>
+
+<ol>
+  <li><strong>Find the Container’s IP</strong>: Use the <code class="language-plaintext highlighter-rouge">ip a</code> command to find its IP address.</li>
+  <li><strong>Log In</strong>: Open a browser and navigate to <code class="language-plaintext highlighter-rouge">https://&lt;container-ip&gt;:8443</code>. Log in using the root credentials.</li>
+</ol>
+
+<h2 id="adding-nodes-or-clusters-to-pdm">Adding Nodes or Clusters to PDM</h2>
+
+<p>To centralize your management:</p>
+
+<ol>
+  <li>Navigate to <strong>Remotes</strong> and click <strong>Add Proxmox VE</strong>.</li>
+  <li>Enter the FQDN or IP of your node or cluster.</li>
+  <li>For self-signed certificates, paste the certificate fingerprint from your PVE host.
+    <ul>
+      <li>Open the web GUI for your PVE host.</li>
+      <li>Navigate to the node in the left navigation pane.</li>
+      <li>In the right pane, under <strong>System</strong>, click on <strong>Certificates</strong>.</li>
+      <li>In the far right pane, locate the certificate named <code class="language-plaintext highlighter-rouge">pve-ssl.pem</code> and double-click on it.</li>
+      <li>Copy the SSL certificate (second in the list) and enter that fingerprint into the PDM certificate fingerprint section. Note: this is only necessary if you use a self-signed certificate on your PVE host!</li>
+    </ul>
+  </li>
+  <li>Click <strong>Connect</strong>.</li>
+  <li>Provide login credentials and enter a name for this remote. If it’s a single node, name it after the node; if it’s a cluster, name it after the cluster.</li>
+  <li>Leave the API token the same, or change it, and click <strong>Scan</strong>.</li>
+  <li>Review and confirm the added nodes or clusters. If you’re missing nodes, use <strong>add</strong> to add them. If all is correct, click <strong>Next</strong>.</li>
+  <li>The final window is a summary—click <strong>Finish</strong>.</li>
+</ol>
+
+<p>Within minutes, your nodes and clusters will populate the dashboard, and you can begin managing them from PDM.</p>
+
+<h2 id="looking-ahead-pdm-roadmap">Looking Ahead: PDM Roadmap</h2>
+
+<p>Proxmox has an ambitious roadmap for PDM, with planned features including:</p>
+
+<ul>
+  <li>Enhanced resource overviews and remote management.</li>
+  <li>Configuration management for updates, backups, and firewalls.</li>
+  <li>SDN integration for inter-cluster networking.</li>
+  <li>Advanced search and error handling.</li>
+  <li>Integration with Proxmox Backup Server and Mail Gateway.</li>
+</ul>
+
+<h2 id="final-thoughts">Final Thoughts</h2>
+
+<p>PDM’s alpha release is a promising start toward unifying Proxmox management. For former VMware users, PDM feels like the beginning of a vCenter alternative within the Proxmox ecosystem. While the alpha is still in its infancy, the potential is undeniable. If Proxmox follows through on its roadmap, PDM could transform the way users manage virtualization infrastructures.</p>
+
+<p>What are your thoughts on Proxmox Datacenter Manager? Share your experiences and opinions in the comments below!</p>]]></content><author><name>2GT_Rich</name></author><category term="Proxmox" /><category term="PVE" /><category term="Datacenter" /><category term="Management" /><summary type="html"><![CDATA[]]></summary></entry><entry><title type="html">The End of VMUG Advantage: What It Means for Homelabbers and IT Pros, and the VMware Community</title><link href="https://2guystek.tv/jekyll-theme-yat/2024/11/11/end-of-vmug.html" rel="alternate" type="text/html" title="The End of VMUG Advantage: What It Means for Homelabbers and IT Pros, and the VMware Community" /><published>2024-11-11T00:00:00+00:00</published><updated>2024-11-11T00:00:00+00:00</updated><id>https://2guystek.tv/jekyll-theme-yat/2024/11/11/end-of-vmug</id><content type="html" xml:base="https://2guystek.tv/jekyll-theme-yat/2024/11/11/end-of-vmug.html"><![CDATA[<p><img src="//youtube.com/watch?v=j-da8druGT0" alt="" /></p>
+
+<p>Whelp, here we go again. If you haven’t heard the news, Broadcom has once again made sweeping changes at VMware—this time targeting VMUG and, specifically, VMUG Advantage. And if you’re a homelabber, self-hoster, or an IT professional like me, this is some disheartening stuff.</p>
+
+<p>Big news dropped last week at VMware Explore Barcelona when Broadcom made a major announcement affecting the VMware User Group (VMUG) and their Advantage program. For context, I’ve been deeply involved with VMUG over the years—I even served as a VMUG leader out here in Portland. So, like many of you, I was saddened by the email that landed in my inbox on November 5th, spelling out the end of VMUG Advantage as we know it.</p>
+
+<h2 id="the-announcement-from-vmug">The Announcement from VMUG</h2>
+
+<p>In their email, VMUG informed current Advantage members that:</p>
+
+<blockquote>
+  <p>“Today, in Barcelona at VMware Explore, Broadcom announced a new program that gives Advantage members an exclusive path to VMware Cloud Foundation (VCF) and VVS personal use licenses.</p>
+
+  <p>This program will alter the current path to EVALExperience within VMUG Advantage. As an Advantage member, we want to ensure you have the details on this change.”</p>
+</blockquote>
+
+<p>What This Means: As of November 30, 2024, the current EvalExperience licenses offered through VMUG Advantage will be phased out. This means that if you’re a VMUG Advantage member, no matter where you are in your subscription cycle, after November 30th, you will lose access to any software you were entitled to. Additionally, Broadcom is introducing a new pathway for obtaining VCF and VVS non-production, personal-use licenses via their VCP program, and VMUG will no longer facilitate access to the software.</p>
+
+<h2 id="what-broadcom-has-said-officially">What Broadcom Has Said Officially</h2>
+
+<p>In their announcement, Broadcom highlighted the following:</p>
+
+<blockquote>
+  <p>“In a new exclusive benefit to VMware User Group (VMUG) members, Broadcom will provide VMUG Advantage subscribers a 50% discount on VMware Certified Professional (VCP) and VMware Certified Advanced Professional (VCAP) certification exams. Upon successful completion of a VMware Cloud Foundation certification exam, VMUG Advantage members will have access to a free personal use VMware Cloud Foundation license for up to three years.”</p>
+</blockquote>
+
+<p>Gee, thanks, Broadcom.</p>
+
+<p>In short, the “Advantage” you now get from being a VMUG Advantage member is a discount on certification exams only. To access VMware software through this new program, you must already hold a VCP or VCAP certification.</p>
+
+<h2 id="the-conundrum-for-new-engineers">The Conundrum for New Engineers</h2>
+
+<p>To access VMware’s VCF software, you need a VCP or VCAP certification, which requires you to have experience and access to VMware software. This poses an impossible barrier for newcomers wanting to enter the VMware ecosystem. Without access to VCF or similar software for practice and learning, how are aspiring engineers supposed to gain experience? The irony here is infuriating: a program that was once a gateway for new talent is now a closed-off fortress.</p>
+
+<h2 id="why-this-move-hurts-vmwares-community">Why This Move Hurts VMware’s Community</h2>
+
+<p>For years, VMware has thrived because of its active community of homelabbers, IT professionals, and engineers, many of whom got started through VMUG and VMUG Advantage. Personally, I brought VMware into every organization I worked for because I could run, experiment with, and learn VMware on my own terms before introducing it as a production system. The freedom to explore the software was invaluable.</p>
+
+<p>With Broadcom’s recent changes, new engineers now have no feasible way to gain experience in the VMware ecosystem outside of a production environment—if they’re lucky enough to get hired by a company using VMware at all.</p>
+
+<h2 id="a-message-to-vmware-and-broadcom">A Message to VMware and Broadcom</h2>
+
+<p>To the VMware and Broadcom folks out there, I’d love an answer to this question: How do you expect to attract new talent when you’ve effectively walled off access to the tools they need to learn? Are they supposed to “read a book, buy discounted certs, and then take a test?” Really?</p>
+
+<p>And to those at Broadcom: why alienate the very community that championed VMware for years? This community did the legwork of evangelizing VMware, myself included. But it seems that Broadcom’s philosophy is simple: if it’s free or affordable, it has to go. And it didn’t stop at the free ESXi licenses—VMUG Advantage members paying for yearly licensing wasn’t good enough, either.</p>
+
+<h2 id="a-heartfelt-goodbye-to-vmug">A Heartfelt Goodbye to VMUG</h2>
+
+<p>For VMUG, this shift is a huge blow. I may have moved on from VMware, but I know the team at VMUG believes in the community they’ve built, and that Advantage revenue is crucial to their mission. I genuinely hope VMUG can find a way to survive in the face of these changes, even though they’re getting zero support from Broadcom.</p>
+
+<h2 id="where-do-we-go-from-here">Where Do We Go From Here?</h2>
+
+<p>It’s time to make some moves. Here’s what I’m doing about it, and what I’d recommend if you’re in a similar position:</p>
+
+<h3 id="transitioning-away-from-vmware-in-the-homelab">Transitioning Away from VMware in the Homelab</h3>
+
+<p>I’ve moved my homelab to Proxmox, which has been great. There are excellent alternatives out there: Proxmox and XCP-ng are solid, Nutanix Community Edition is fantastic if you have the right hardware, and even Hyper-V can work in a pinch.</p>
+
+<h3 id="professionally-start-planning-your-exit-from-vmware">Professionally, Start Planning Your Exit from VMware</h3>
+
+<p>If you’re in a large organization, you may have to eat a 3-year contract to get your tech stack moved. Use that time wisely to explore other platforms. Whether open-source or closed-source, there are strong alternatives out there, and every dollar spent on VMware is a reward for Broadcom’s terrible behavior.</p>
+
+<h3 id="join-new-communities">Join New Communities</h3>
+
+<p>There are communities around all these platforms, many of which welcome newcomers with open arms. Nutanix has an open user group for everyone, whether you’re running CE or enterprise-grade. Join Proxmox or XCP-ng groups online, connect on Discord, and attend events—there’s a whole world beyond VMware.</p>
+
+<h2 id="final-thoughts">Final Thoughts</h2>
+
+<p>It’s disappointing to see Broadcom dismantling something that has empowered so many of us in the IT space. But change brings opportunity, and there are new and exciting communities ready to embrace us. So, if you’re still holding onto VMware at home, I encourage you to consider the options and plan your next steps. Let’s move forward together, find new platforms, and build up communities that actually value us.</p>
+
+<p>Thank you for reading, and I look forward to seeing where we go from here.</p>]]></content><author><name>2GT_Rich</name></author><category term="VMUG" /><category term="VMware" /><category term="Broadcom" /><category term="Homelab" /><category term="IT" /><summary type="html"><![CDATA[]]></summary></entry><entry><title type="html">Staying Ahead in the Virtualization Landscape: Late Spring 2024</title><link href="https://2guystek.tv/jekyll-theme-yat/2024/06/05/staying-ahead-in-virtualization.html" rel="alternate" type="text/html" title="Staying Ahead in the Virtualization Landscape: Late Spring 2024" /><published>2024-06-05T00:00:00+00:00</published><updated>2024-06-05T00:00:00+00:00</updated><id>https://2guystek.tv/jekyll-theme-yat/2024/06/05/staying-ahead-in-virtualization</id><content type="html" xml:base="https://2guystek.tv/jekyll-theme-yat/2024/06/05/staying-ahead-in-virtualization.html"><![CDATA[<p><img src="//youtube.com/watch?v=SZWiQOIsY38" alt="" /></p>
+
+<p>At the end of our “Life after VMware” series, we started to get comments and suggestions that we should regularly release videos on the state of the virtualization landscape since it’s changing so rapidly that it’s hard for a lot of people to keep up. So, we’ll be doing these videos every few months to check in and see what’s changed and evolved in the virtualization landscape and hopefully keep everyone up to date as well. Let’s get to it!</p>
+
+<h2 id="whats-new-in-virtualization">What’s New in Virtualization?</h2>
+
+<p>Hey there homelabbers, self-hosters, IT pros, and engineers, Rich here. Let’s get down to business on what’s happened lately in terms of features, changes, updates, and other news in the infrastructure virtualization space. I will endeavor to provide you with useful information in these videos from your favorite hypervisors like XCP-ng, Proxmox, Hyper-V, Nutanix, and yes…even VMware by Broadcom. If I miss anything, or if you have any options/thoughts/etc. toss them in the comments below and share the knowledge with others, since we’re all in this together!</p>
+
+<h2 id="xcp-ng-news-and-updates">XCP-ng News and Updates</h2>
+
+<p>May has been a relatively quiet month in terms of news out of Vates and XCP-ng; however, April was pretty busy. XCP-ng announced the availability of its first SMAPIv3 driver in preview, specifically designed for ZFS-based storage repositories. This driver, included in XCP-ng 8.3, allows users to create and manage ZFS storage repositories with greater flexibility and efficiency. April also saw a security update for XCP-ng 8.2 that fixed host crashes, corrected logic to prevent unauthorized memory access by attackers, and mitigated Native Branch History Injection, which is an evolution of the Spectre vulnerability. If you haven’t patched, get on it.</p>
+
+<p>One thing to note, the SMAPIv3 driver is only available in the beta XCP-ng 8.3, and not XCP-ng 8.2 LTS. Now, let’s dig into Proxmox.</p>
+
+<h2 id="proxmox-news-and-updates">Proxmox News and Updates</h2>
+
+<p>Proxmox has released version 8.2 of its Virtual Environment, featuring an import wizard for migrating VMware ESXi guests, automated bare-metal installation, and a backup fleecing feature to improve VM performance during backups. This update also includes a modernized firewall using nftables, device passthrough via GUI, advanced backup settings, and support for custom ACME-enabled Certificate Authorities. The release enhances ease of use and performance, making it simpler to manage virtual environments. And anything that makes that GUI better is worth it in my book – go get it installed!</p>
+
+<p>In other huge news, Veeam announced they will officially support Proxmox VE. Support for this virtualization platform has been a popular request from Veeam’s existing small and medium-sized business (SMB) customers and service providers. This is big news in terms of opening up Proxmox VE to businesses who rely on Veeam for their backup, disaster recovery, and immutability strategies and will go a long way to making Proxmox a viable alternative virtualization platform.</p>
+
+<p>Two giant leaps forward for Proxmox – first, the release of 8.2 in late April brought with it their import wizard for VMware ESXi, something we’ll be trying out in the future, so look for videos on that. And then the announcement from Veeam that they’ll be releasing native support for PVE. This is a big win for Proxmox and Veeam.</p>
+
+<h2 id="nutanix-news-and-updates">Nutanix News and Updates</h2>
+
+<p>The biggest news landed on May 21st. Nutanix and Dell announced a collaboration to enhance hybrid multicloud solutions, aiming to streamline IT operations and improve resiliency. The partnership will introduce two key solutions: a hyper-converged appliance combining Nutanix Cloud Platform and Dell servers, and Nutanix Cloud Platform for Dell PowerFlex, allowing independent scaling of compute and storage. Put simply – this is the first time we’ve seen Nutanix decouple storage from the compute stack.</p>
+
+<p>Just in case I’m using too much business-speak here, let me clarify. When you go with Nutanix, you buy into hyperconverged 100%. You don’t get to use your sexy Pure Storage array or any SAN for that matter for your virtualization in Nutanix – but this announcement is saying, that’s not always the case now, at least if you buy into Dell PowerFlex running Nutanix on it. It looks like we might be seeing the ice thaw on Nutanix’s no SAN or external storage doctrine, and believe me folks, that’s really big news!</p>
+
+<p>In other news, AHV, or Acropolis Hypervisor, turns 10 years old this year. AHV still looks to be running on top of CentOS7 though, and with the official end of CentOS coming later this year, I suspect we’ll see something from Nutanix in the near future announcing what base OS AHV and AOS as a whole moves to.</p>
+
+<p>I’ve been getting a lot of questions and comments about Nutanix’s use of CentOS, and the short answer is I don’t know when they’ll move or what they’ll be moving their platform to, but I suspect we’ll see a lot of buzz about it soon. If any of you know and can share, drop it in a comment below.</p>
+
+<h2 id="hyper-v-news-and-updates">Hyper-V News and Updates</h2>
+
+<p>Hyper-V rarely sees a lot of big independent announcements since it’s always coupled with Windows Server announcements. So, the best I have for you was this announcement about Windows Server 2025 preview and a note about the massive improvements to performance and scalability in Server 2025. Stating:</p>
+
+<p>Windows Server 2025 Hyper-V Virtual Machine Maximums:</p>
+
+<ul>
+  <li><strong>Maximum Memory per VM</strong>: 240 Terabytes* (10x previous)</li>
+  <li><strong>Maximum Virtual Processors per VM</strong>: 2048 VPs* (~8.5x previous)</li>
+</ul>
+
+<p>*Requires Generation 2 VMs</p>
+
+<p>Microsoft is on a mission to bridge the gap between on-premise virtualization and hybrid cloud deployments, and Hyper-V is playing a pivotal role in that. Server 2025 obviously isn’t out yet, but it’s good to see that Microsoft is continuing to develop and improve Hyper-V.</p>
+
+<h2 id="vmware-by-broadcom-news-and-updates">VMware by Broadcom News and Updates</h2>
+
+<p>First, let’s start with some good news. On May 13th VMware announced that Fusion Pro and Workstation Pro are now available for free for personal use. Both software can be used free for personal use, but commercial use still falls under a subscription contract. Fusion Pro is desktop virtualization for MacOS, both Intel and ARM CPU, and Workstation Pro is for x86 Windows environments.</p>
+
+<p>While it’s always nice to get something for free, this freebie has felt like a bit of a consolation prize for the loss of the ESXi hypervisor which many of us have been using in our homelabs for over a decade. Whether this fills the hole left by the loss of ESXi or not will remain to be seen, typically trading a dedicated type-1 hypervisor for a type-2 software package brings poorer performance and user experience, but having a good desktop hypervisor is always a good thing.</p>
+
+<p>In more negative news, Computershare, a large financial products and services company in Australia announced that it’s pulling VMware out of their organization to the tune of 24 THOUSAND VMs. The significant licensing cost increase has forced the company to reconsider its virtualization strategy, moving away from VMware to more cost-effective alternatives which, at least, from the article, looks to be Nutanix AHV.</p>
+
+<p>We’ve been hearing from Broadcom from the beginning that their strategy has been to focus on big enterprises, and news like this doesn’t reflect well on the realities of Broadcom’s strategy. At a minimum, this is a bit of egg on the face of Broadcom and Hok Tan, but big news like this also calls into question Broadcom’s indifference to its customer’s complaints is netting higher attrition than expected.</p>
+
+<p>Two more things worth mentioning this round, on May 5th Broadcom shutdown the VMware customer connect website. Now all support for VMware customers, including accessing your entitlements like keys, downloads, and so on, have to be done via the Broadcom support portal. Hopefully, you created your account ahead of the cutover. Also, Broadcom has moved VMware’s knowledge base, which were fully public-facing, to within the Broadcom support portal. I suspect this will have a significant effect on google search results when looking for answers to issues online.</p>
+
+<p>This is my personal take here, but the Broadcom support portal is a nightmare to find things that are VMware related. For example, when you do get logged in, you’re dropped into the ‘Mainframe Software’ section, which has nothing to do with VMware and is confusing. Broadcom knows what I’m licensed for; they should put me in that area when I log in. To get to the VMware downloads, one has to head over to the ‘VMware Cloud Foundation’ section, which again is also confusing since I’m not a VCF customer. It’s a pretty terrible user experience, but then again – so is dealing with VMware by Broadcom.</p>
+
+<h2 id="tell-us-what-you-think">Tell us what you think!</h2>
+
+<p>This is new for us here at 2GT, and we want to make sure we’re covering the hypervisors you care about for your homelab, and your job so please don’t hesitate to let me know what we’re missing and what more you’d like to see!</p>]]></content><author><name>2GT_Rich</name></author><category term="virtualization" /><category term="XCP-ng" /><category term="Proxmox" /><category term="Hyper-V" /><category term="Nutanix" /><category term="VMware" /><summary type="html"><![CDATA[]]></summary></entry><entry><title type="html">Evaluating Hyper-V as an Alternative to VMware ESXi</title><link href="https://2guystek.tv/jekyll-theme-yat/2024/05/21/evaluating-hyper-v.html" rel="alternate" type="text/html" title="Evaluating Hyper-V as an Alternative to VMware ESXi" /><published>2024-05-21T00:00:00+00:00</published><updated>2024-05-21T00:00:00+00:00</updated><id>https://2guystek.tv/jekyll-theme-yat/2024/05/21/evaluating-hyper-v</id><content type="html" xml:base="https://2guystek.tv/jekyll-theme-yat/2024/05/21/evaluating-hyper-v.html"><![CDATA[<p><img src="//youtu.be/hrfoCT9sioU" alt="" /></p>
+
+<p>As Broadcom’s acquisition of VMware makes VMware ESXi increasingly untenable for homelabs and small to medium businesses, it’s time to consider alternative hypervisors. This is the third installment in our series, following our evaluations of XCP-ng and Proxmox VE. Now, let’s delve into Microsoft Hyper-V, the third most requested hypervisor.</p>
+
+<h2 id="the-hyper-v-origin-story">The Hyper-V Origin Story</h2>
+
+<p>Microsoft Hyper-V first launched on June 26, 2008, as part of an update to Windows Server 2008, marking Microsoft’s entry into the hardware virtualization space. Later that year, on October 1, Microsoft released the stand-alone Hyper-V server, built on Windows Server 2008 Core, which was freely available.</p>
+
+<h3 id="key-milestones">Key Milestones:</h3>
+
+<ul>
+  <li><strong>2009:</strong> Windows Server 2008 R2 brought live migration of VMs and expanded support for operating systems.</li>
+  <li><strong>2012:</strong> Windows Server 2012 introduced Hyper-V Replica for disaster recovery, a new virtual hard disk format, and network virtualization.</li>
+  <li><strong>2016:</strong> Windows Server 2016 added support for Docker and containers, nested virtualization, and shielded VMs for improved security.</li>
+  <li><strong>2019:</strong> Windows Server 2019 focused on cloud and hybrid cloud environments, integrating Hyper-V with Azure services.</li>
+</ul>
+
+<p>Although Microsoft announced that Hyper-V Server 2019 would be the final stand-alone version, Hyper-V continues to be a component of Windows Server, with support for Hyper-V Server 2019 ending in 2029.</p>
+
+<h2 id="comparing-hyper-v-to-vmware-esxi">Comparing Hyper-V to VMware ESXi</h2>
+
+<h3 id="architecture">Architecture</h3>
+
+<p>Both Hyper-V and ESXi are type-1 hypervisors but differ in deployment. ESXi is lightweight, running from RAM with a closed-source kernel, while Hyper-V, part of Windows Server, varies in footprint depending on whether the Core or Desktop version of Windows Server is used. Hyper-V is also closed-source.</p>
+
+<h3 id="performance">Performance</h3>
+
+<p>Performance between Hyper-V and ESXi is nearly equivalent. ESXi supports up to 896 logical CPUs and 24TB of RAM per host, whereas Hyper-V supports up to 512 logical CPUs and 48TB of RAM in Windows Server 2022.</p>
+
+<h3 id="usability">Usability</h3>
+
+<ul>
+  <li><strong>VMware ESXi:</strong> Uses a web-based HTML5 GUI for host and VM management, with extended functionality requiring vCenter.</li>
+  <li><strong>Hyper-V:</strong> Lacks a web-based management interface and relies on various Windows OS or PowerShell tools. Management can be done using Hyper-V Manager, Failover Cluster Manager, or SCVMM.</li>
+</ul>
+
+<h3 id="features">Features</h3>
+
+<ul>
+  <li><strong>VMware ESXi/vCenter:</strong> Offers advanced features like distributed resource scheduling, high availability, fault tolerance, and vMotion, requiring additional licensing.</li>
+  <li><strong>Hyper-V:</strong> Nearly feature-complete with VMware, supporting clustering, live migrations, high availability, and workload balancing out of the box.</li>
+</ul>
+
+<h3 id="scalability">Scalability</h3>
+
+<ul>
+  <li><strong>VMware ESXi:</strong> Manages over a thousand VMs per host, scaling up to 2500 hosts with vCenter.</li>
+  <li><strong>Hyper-V:</strong> Supports over a thousand VMs per host and up to 64 nodes per cluster with up to 8,000 VMs.</li>
+</ul>
+
+<h3 id="support">Support</h3>
+
+<ul>
+  <li><strong>VMware:</strong> Offers extensive professional support, training, certifications, and a large community.</li>
+  <li><strong>Hyper-V:</strong> Provides support through Microsoft’s website, community forums, and direct contact. Windows Server certifications are available, but none specifically for Hyper-V.</li>
+</ul>
+
+<h3 id="cost">Cost</h3>
+
+<ul>
+  <li><strong>VMware ESXi:</strong> Recently eliminated its free hypervisor, increasing costs.</li>
+  <li><strong>Hyper-V:</strong> Licensing costs depend on the Windows Server version. Windows Server 2022 Datacenter costs $6,155 USD, supporting unlimited Windows VMs, while the Standard edition costs $1,069 USD for up to two Windows VMs. There are no licensing limits for Linux VMs.</li>
+</ul>
+
+<h2 id="real-world-examples-and-interface-comparisons">Real-World Examples and Interface Comparisons</h2>
+
+<h3 id="console-interfaces">Console Interfaces</h3>
+
+<ul>
+  <li><strong>VMware ESXi Console:</strong> Provides basic host information and minimal management functionality.</li>
+  <li><strong>Hyper-V:</strong> Integrated into Windows Server, with no discrete console.</li>
+</ul>
+
+<h3 id="management-guis">Management GUIs</h3>
+
+<ul>
+  <li><strong>VMware ESXi:</strong> Features a web management UI with detailed host, VM, storage, and networking information.</li>
+  <li><strong>Hyper-V Manager:</strong> An MMC-based console for managing Hyper-V, offering basic VM and host management functions.</li>
+</ul>
+
+<h2 id="likes-and-dislikes">Likes and Dislikes</h2>
+
+<h3 id="what-i-like">What I Like</h3>
+
+<ul>
+  <li>Hyper-V is nearly feature-complete with VMware ESXi.</li>
+  <li>Integration with Windows Server simplifies management for Windows-centric environments.</li>
+</ul>
+
+<h3 id="what-i-dislike">What I Dislike</h3>
+
+<ul>
+  <li><strong>User Experience:</strong> Hyper-V Manager’s MMC interface is outdated and lacks detailed host statistics and VM performance metrics.</li>
+  <li><strong>Linux Compatibility:</strong> Hyper-V’s support for Linux is inconsistent, making it less suitable for homelabs focused on experimentation and learning.</li>
+  <li><strong>Limited Management Tools:</strong> Hyper-V Manager is the default but suboptimal tool for managing Hyper-V, with better alternatives like Windows Admin Center or SCVMM requiring additional installation or configuration.</li>
+  <li><strong>Perception:</strong> Hyper-V often feels like an afterthought by Microsoft, driven more by cost considerations than superiority as a virtualization platform.</li>
+</ul>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>While Hyper-V can run VMs and may suit Windows-centric environments, its limitations and inconsistent Linux support make it less ideal as a replacement for ESXi. For those seeking a hypervisor for homelabs or diverse environments, Hyper-V may not be the best choice.</p>
+
+<p>If you have thoughts or suggestions for other hypervisors to review, let us know in the comments or join our Discord community!</p>]]></content><author><name>2GT_Rich</name></author><category term="VMware" /><category term="Hyper-V" /><category term="virtualization" /><summary type="html"><![CDATA[]]></summary></entry><entry><title type="html">Evaluating Nutanix as an Alternative to VMware ESXi</title><link href="https://2guystek.tv/jekyll-theme-yat/2024/05/21/evaluating-nutanix.html" rel="alternate" type="text/html" title="Evaluating Nutanix as an Alternative to VMware ESXi" /><published>2024-05-21T00:00:00+00:00</published><updated>2024-05-21T00:00:00+00:00</updated><id>https://2guystek.tv/jekyll-theme-yat/2024/05/21/evaluating-nutanix</id><content type="html" xml:base="https://2guystek.tv/jekyll-theme-yat/2024/05/21/evaluating-nutanix.html"><![CDATA[<p><img src="//youtu.be/rMzbuxd5b_Y" alt="" /></p>
+
+<p>Welcome, friends! If you can believe it, this is the fourth installment of our series on evaluating alternative hypervisors now that Broadcom is making VMware untenable for homelabs and small to medium businesses. In the last three videos, we focused on XCP-ng, Proxmox, and Hyper-V as alternatives to ESXi. If you haven’t seen those videos, check them out.</p>
+
+<h2 id="introduction-to-nutanix">Introduction to Nutanix</h2>
+
+<p>Now it’s time to focus on the fourth most requested hypervisor, Nutanix. Let’s get to it!</p>
+
+<p>Hey there, homelabbers and self-hosters, Rich here. This video is the fourth in our series focused on evaluating your options if you’re coming from the world of VMware and ESXi, with this video, in particular, being focused on Nutanix AOS. As always, I’ll be looking at this from a VMware perspective and sharing my thoughts and opinions along the way. Let’s start with some background on Nutanix and the history of the product.</p>
+
+<h2 id="the-nutanix-origin-story">The Nutanix Origin Story</h2>
+
+<ul>
+  <li><strong>2009:</strong> Nutanix was founded by Dheeraj Pandey, Mohit Aron, and Ajeet Singh with the vision of simplifying data centers by integrating compute, storage, and virtualization into a single solution.</li>
+  <li><strong>2011:</strong> Nutanix launched its first product, Nutanix Complete Cluster, marking its entry into the hyper-converged infrastructure (HCI) market. This innovative solution combined compute and storage into a single, scalable appliance.</li>
+  <li><strong>2015:</strong> Nutanix introduced its own hypervisor, AHV (Acropolis Hypervisor), based on KVM and running on CentOS 7. AHV offered a cost-effective alternative to VMware and Hyper-V, emphasizing software-defined solutions.</li>
+  <li><strong>2016:</strong> Nutanix went public with one of the most successful IPOs of the year, underlining the company’s growth and the market’s confidence in its technology.</li>
+  <li><strong>2017 &amp; 2018:</strong> Nutanix broadened its portfolio, introducing Nutanix Calm for application automation and orchestration and Xi Cloud services for hybrid cloud environments. The company also acquired several firms to enhance its cloud capabilities.</li>
+  <li><strong>2020:</strong> Nutanix transitioned to a subscription model for licensing, intending to provide more flexibility to customers and predictable revenue for investors. However, this shift resulted in lower upfront revenue compared to traditional licensing. 2020 also saw a leadership change, with co-founder Dheeraj Pandey stepping down as CEO, succeeded by Rajiv Ramaswami.</li>
+  <li><strong>2023 and Beyond:</strong> Nutanix continues to expand its cloud offerings, introducing new services to support multi-cloud and hybrid cloud strategies. With VMware’s recent ownership change, Nutanix is poised to gain market share, especially through partnerships like the one with Cisco.</li>
+</ul>
+
+<h2 id="comparing-nutanix-to-vmware-esxi">Comparing Nutanix to VMware ESXi</h2>
+
+<h3 id="architecture">Architecture</h3>
+
+<p>Both Nutanix and VMware ESXi are type-1 hypervisors but differ in deployment methodologies. ESXi is lightweight, running from RAM with a closed-source kernel. Nutanix AOS and AHV are based on CentOS 7, using disk storage for various operational needs, with closed-source intellectual property.</p>
+
+<h3 id="performance">Performance</h3>
+
+<p>Performance between the two hypervisors is nearly equivalent. ESXi supports up to 896 logical CPUs and 24TB of RAM per host, while Nutanix AHV does not have published maximums for CPU cores or RAM.</p>
+
+<h3 id="usability">Usability</h3>
+
+<ul>
+  <li><strong>VMware ESXi:</strong> Uses a web-based HTML5 GUI for host and VM management, with extended functionality requiring vCenter.</li>
+  <li><strong>Nutanix:</strong> Uses Prism Element, an HTML5 management interface, supporting host and VM management, clustering, live migrations, and DR functionality. Prism Element can manage all aspects of HCI, similar to vCenter but without the need for additional software.</li>
+</ul>
+
+<h3 id="features">Features</h3>
+
+<ul>
+  <li><strong>VMware ESXi/vCenter:</strong> Offers advanced features like distributed resource scheduling, high availability, fault tolerance, vMotion, and API control, requiring additional licensing.</li>
+  <li><strong>Nutanix:</strong> Provides clustering, live workload migrations, high availability, hyper-converged storage and networking, API control, and workload balancing out of the box.</li>
+</ul>
+
+<h3 id="scalability">Scalability</h3>
+
+<ul>
+  <li><strong>VMware ESXi:</strong> Manages thousands of VMs, scaling clusters up to hundreds of hosts with many thousands of VMs.</li>
+  <li><strong>Nutanix:</strong> Supports up to 32 nodes per cluster, with the only limit on VMs being the physical CPU and memory. Nutanix is designed solely for HCI and does not support external SAN or NAS storage.</li>
+</ul>
+
+<h3 id="support">Support</h3>
+
+<ul>
+  <li><strong>VMware:</strong> Offers extensive professional support, training, certifications, and a large community.</li>
+  <li><strong>Nutanix:</strong> Provides professional support, training, certifications, a public knowledge base, and a large community.</li>
+</ul>
+
+<h3 id="cost">Cost</h3>
+
+<ul>
+  <li><strong>VMware ESXi:</strong> Recent licensing changes make it less accessible, with the free hypervisor no longer available as of February 12, 2024.</li>
+  <li><strong>Nutanix:</strong> Offers subscription-based licensing on a per-core basis. Nutanix CE (Community Edition) is available for free, allowing homelab users to experiment and learn with some limitations.</li>
+</ul>
+
+<h2 id="real-world-examples-and-interface-comparisons">Real-World Examples and Interface Comparisons</h2>
+
+<h3 id="console-interfaces">Console Interfaces</h3>
+
+<ul>
+  <li><strong>VMware ESXi Console:</strong> Provides basic host information and minimal management functionality.</li>
+  <li><strong>Nutanix AHV Console:</strong> A typical Linux console with most management done via the web GUI.</li>
+</ul>
+
+<h3 id="management-guis">Management GUIs</h3>
+
+<ul>
+  <li><strong>VMware ESXi:</strong> Features a web management UI with detailed host, VM, storage, and networking information.</li>
+  <li><strong>Nutanix Prism Element:</strong> An all-encompassing management solution for HCI, similar to vCenter, but integrated into the Nutanix platform.</li>
+</ul>
+
+<h2 id="likes-and-dislikes">Likes and Dislikes</h2>
+
+<h3 id="what-i-like">What I Like</h3>
+
+<ul>
+  <li><strong>User Interface:</strong> Nutanix Prism Element is well-designed with clear overviews and detailed sub-tabs. It includes a fun touch with a built-in web-based game called 2048.</li>
+  <li><strong>Detailed Stats and Logging:</strong> Nutanix provides deep insights into performance and operations, rivaling what you’d need VMware Aria Operations for in a VMware environment.</li>
+</ul>
+
+<h3 id="what-i-dislike">What I Dislike</h3>
+
+<ul>
+  <li><strong>No Support for External SAN Storage:</strong> Nutanix’s strict HCI approach limits flexibility for those with traditional SAN setups.</li>
+  <li><strong>Lack of Passthrough:</strong> Nutanix doesn’t support passthrough for devices, making it less suitable for certain advanced setups.</li>
+  <li><strong>Complex Setup:</strong> Installing and setting up Nutanix AHV and AOS involves multiple steps and requires SSH and command-line interaction.</li>
+  <li><strong>High Resource Requirements:</strong> The CVM (Controller Virtual Machine) has significant RAM requirements, starting at 16GB and potentially up to 64GB, which can be burdensome for smaller setups.</li>
+</ul>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>Nutanix offers a robust alternative to VMware ESXi, especially for businesses already invested in HCI. However, certain limitations, like no external SAN support and complex setup, may be deal-breakers for homelab enthusiasts. Despite these caveats, Nutanix is a strong contender in the hyper-converged infrastructure space.</p>]]></content><author><name>2GT_Rich</name></author><category term="VMware" /><category term="Nutanix" /><category term="virtualization" /><summary type="html"><![CDATA[]]></summary></entry><entry><title type="html">Evaluating Proxmox VE as an Alternative to VMware ESXi</title><link href="https://2guystek.tv/jekyll-theme-yat/2024/05/21/evaluating-proxmox.html" rel="alternate" type="text/html" title="Evaluating Proxmox VE as an Alternative to VMware ESXi" /><published>2024-05-21T00:00:00+00:00</published><updated>2024-05-21T00:00:00+00:00</updated><id>https://2guystek.tv/jekyll-theme-yat/2024/05/21/evaluating-proxmox</id><content type="html" xml:base="https://2guystek.tv/jekyll-theme-yat/2024/05/21/evaluating-proxmox.html"><![CDATA[<p><img src="//youtu.be/yGQK0t_h46k" alt="" /></p>
+
+<p>With Broadcom’s acquisition of VMware, many homelab enthusiasts and small to medium businesses are seeking alternatives to VMware ESXi. Today, we delve into Proxmox VE, comparing it to our once-beloved VMware. If you missed our previous video on XCP-ng, check it out here.</p>
+
+<h2 id="the-proxmox-origin-story">The Proxmox Origin Story</h2>
+
+<p>Proxmox was founded in 2005 by Linux developers Dietmar and Martin Maurer. Their company, Proxmox Server Solutions GmbH, has evolved into three main products: Proxmox Virtual Environment (PVE), Proxmox Backup Server, and Proxmox Mail Gateway. Proxmox VE, first released in 2008, aims to provide an easy-to-use, scalable virtualization platform managing both virtual machines and containers in a single system.</p>
+
+<h3 id="growth-and-community-support">Growth and Community Support</h3>
+
+<p>Over the years, Proxmox VE has introduced features such as live migration, high availability, and software-defined storage and networking. A robust community supports its development, and Proxmox Server Solutions GmbH offers enterprise support subscriptions, providing professional support and exclusive repository updates.</p>
+
+<h2 id="proxmox-ve-vs-vmware-esxi-key-comparisons">Proxmox VE vs. VMware ESXi: Key Comparisons</h2>
+
+<h3 id="architecture">Architecture</h3>
+
+<ul>
+  <li><strong>VMware ESXi:</strong> A lightweight, type-1 hypervisor running from RAM with a closed-source kernel.</li>
+  <li><strong>Proxmox VE:</strong> Based on Debian Linux, it continues to use disk storage for various operational needs post-boot.</li>
+</ul>
+
+<h3 id="performance">Performance</h3>
+
+<p>Both hypervisors offer nearly equivalent performance. However, ESXi’s limits for RAM and hosts per cluster are well-defined, whereas PVE does not specify such limits.</p>
+
+<h3 id="usability">Usability</h3>
+
+<ul>
+  <li><strong>VMware ESXi:</strong> Features a basic HTML5 GUI for host and VM management, with extended functionality requiring vCenter.</li>
+  <li><strong>Proxmox VE:</strong> Offers a built-in management interface that includes clustering, live migrations, and backup functionality without additional software.</li>
+</ul>
+
+<h3 id="features">Features</h3>
+
+<ul>
+  <li><strong>VMware ESXi/vCenter:</strong> Requires additional licensing for advanced features like distributed resource scheduling, high availability, fault tolerance, and vMotion.</li>
+  <li><strong>Proxmox VE:</strong> Provides clustering, live workload migrations, high availability, and workload balancing out of the box for free.</li>
+</ul>
+
+<h3 id="scalability">Scalability</h3>
+
+<ul>
+  <li><strong>VMware ESXi:</strong> Known for managing thousands of VMs, scaling clusters with vCenter.</li>
+  <li><strong>Proxmox VE:</strong> Supports clustering and can manage large collections of hosts and VMs, though less commonly used in very large environments.</li>
+</ul>
+
+<h3 id="support">Support</h3>
+
+<ul>
+  <li><strong>VMware:</strong> Offers extensive professional support, training, certifications, and a well-maintained public knowledge base.</li>
+  <li><strong>Proxmox VE:</strong> Relies on community support but also offers professional support services at different levels through Proxmox Server Solutions GmbH.</li>
+</ul>
+
+<h3 id="cost">Cost</h3>
+
+<ul>
+  <li><strong>VMware ESXi:</strong> Recently eliminated its free hypervisor, making it less accessible.</li>
+  <li><strong>Proxmox VE:</strong> Free and open-source, with professional support available for a fee. Premium support is currently priced at €1020 per socket, per year.</li>
+</ul>
+
+<h2 id="real-world-examples-and-interface-comparisons">Real-World Examples and Interface Comparisons</h2>
+
+<p>Both ESXi and Proxmox VE feature built-in web management GUIs. Let’s compare their consoles and management interfaces:</p>
+
+<h3 id="console-interfaces">Console Interfaces</h3>
+
+<ul>
+  <li><strong>ESXi Console:</strong> Provides basic host information and minimal management functionality, expecting most tasks to be managed via the web GUI.</li>
+  <li><strong>Proxmox VE Console:</strong> Sparse, with most management done via the web GUI, lacking a text-based menu for easier troubleshooting.</li>
+</ul>
+
+<h3 id="management-guis">Management GUIs</h3>
+
+<ul>
+  <li><strong>VMware ESXi:</strong> The web GUI offers a dashboard for host state, usage, and configuration, with detailed tabs for VMs, storage, and networking.</li>
+  <li><strong>Proxmox VE:</strong> The GUI is more complex, reminiscent of vCenter, with extensive features for host and VM management, clustering, storage, and network configuration.</li>
+</ul>
+
+<h3 id="creating-virtual-machines">Creating Virtual Machines</h3>
+
+<p>Creating VMs in Proxmox is straightforward, with a wizard guiding you through the process. Unlike VMware, Proxmox supports various hardware emulation options and has native TPM support for VMs.</p>
+
+<h2 id="pros-and-cons-of-proxmox-ve">Pros and Cons of Proxmox VE</h2>
+
+<h3 id="pros">Pros:</h3>
+
+<ul>
+  <li>Comprehensive feature set without additional costs.</li>
+  <li>Built-in clustering, live migration, and high availability.</li>
+  <li>Native VM backup functionality.</li>
+  <li>Supports both VMs and LXC containers.</li>
+</ul>
+
+<h3 id="cons">Cons:</h3>
+
+<ul>
+  <li>Busy and complex UI with steep learning curve.</li>
+  <li>Constant reminders about the lack of a subscription.</li>
+  <li>No built-in menu interface for console management.</li>
+  <li>Complicated upgrade process.</li>
+  <li>Lack of an easy migration path from VMware ESXi.</li>
+</ul>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>Proxmox VE presents a viable alternative to VMware ESXi, offering a feature-rich, cost-effective solution for homelab enthusiasts and businesses alike. While there are areas for improvement, its robust capabilities make it worth considering for your virtualization needs.</p>
+
+<p>If you’re exploring different hypervisors and have a specific one in mind, let us know in the comments or join our Discord community!</p>]]></content><author><name>2GT_Rich</name></author><category term="VMware" /><category term="Proxmox" /><category term="virtualization" /><summary type="html"><![CDATA[]]></summary></entry><entry><title type="html">Life After VMware: A Comprehensive Roundup of Alternative Hypervisors</title><link href="https://2guystek.tv/jekyll-theme-yat/2024/05/21/life-after-vmware.html" rel="alternate" type="text/html" title="Life After VMware: A Comprehensive Roundup of Alternative Hypervisors" /><published>2024-05-21T00:00:00+00:00</published><updated>2024-05-21T00:00:00+00:00</updated><id>https://2guystek.tv/jekyll-theme-yat/2024/05/21/life-after-vmware</id><content type="html" xml:base="https://2guystek.tv/jekyll-theme-yat/2024/05/21/life-after-vmware.html"><![CDATA[<p><img src="//youtu.be/eQgzITx1Sp8" alt="" /></p>
+
+<h2 id="how-did-we-even-get-here">How did we even get here?</h2>
+
+<p>Welcome to the final-final video on evaluating your options if you’re coming from the world of VMware and ESXi. This video is my opus, my coup de grâce, the finale of this series that has taken up practically four solid months of my time. In this video, I’m going to attempt to aggregate and summarize as much of the information from the last four videos as I can, put a nice little bow on it, and hand it over to you.</p>
+
+<p>In the last four videos, I looked at XCP-ng, Proxmox, Hyper-V, and Nutanix as alternatives to VMware ESXi and vCenter in your homelab and for your business. All four platforms have pros and cons, so I’m going to attempt to compare them based on their features and limitations in the hopes that this summary gives you some ideas on which direction you want to take with your gear or business.</p>
+
+<p>If you haven’t watched the videos, I encourage you to do so to understand the depth of research that went into this summary. So with that, it’s time to commit death by PowerPoint! Let’s get to it!</p>
+
+<h2 id="can-these-products-replace-vmware">Can These Products Replace VMware?</h2>
+
+<p>For the most part, all of these hypervisors will replace VMware ESXi and even vCenter, but the devil, friends, is always in the details. Let’s dig in.</p>
+
+<ul>
+  <li><strong>XCP-ng:</strong> Yes, hands-down. It’s the most analogous to ESXi and vCenter and is free.</li>
+  <li><strong>Proxmox:</strong> Yes, absolutely, with vCenter-equivalent features, added LXC container support, and, as a friend in our Discord is fond of saying, it will run on a potato, and is also free.</li>
+  <li><strong>Hyper-V:</strong> Mostly yes. With the exception of some Linux OS compatibility, it will serve Windows shops well and has vCenter-equivalent features.</li>
+  <li><strong>Nutanix:</strong> Yes, best suited for VMware users and businesses already invested in HCI or hyper-converged infrastructure.</li>
+</ul>
+
+<p>All of these hypervisors will run VMs without issue, and with the exception of Hyper-V, are either free or have a free version you can run in your homelab or use to personally evaluate for your business. Now, let’s talk a bit about their underlying operating systems and how they’re deployed.</p>
+
+<h2 id="underlying-operating-systems-and-deployment">Underlying Operating Systems and Deployment</h2>
+
+<ul>
+  <li><strong>XCP-ng:</strong> Based on the Xen Hypervisor, it is entirely open-source. A standard deployment consists of one or more XCP-ng hosts for running virtual workloads, and either the Xen Orchestra Appliance (XOA) or a deployment of Xen Orchestra (XO) to manage XCP-ng.</li>
+  <li><strong>Proxmox:</strong> Based on Debian with a customized Linux kernel, uses KVM for running VMs and LXC for running Linux containers. Deployment consists of one or more independent Proxmox hosts, each having their own web-based management consoles.</li>
+  <li><strong>Hyper-V:</strong> A component of Windows Server, deployed after a complete setup of the Windows Server OS. Because Microsoft offers both a Core and the full Desktop experience version of Windows Server, footprints of a Hyper-V deployment can be dramatically different. Hyper-V is entirely closed source.</li>
+  <li><strong>Nutanix:</strong> Comprises several components. AHV (Acropolis Hypervisor) is based on CentOS 7 and uses KVM for virtualization. A typical deployment involves the hypervisor followed by the Controller Virtual Machine (CVM), responsible for all management aspects of Nutanix.</li>
+</ul>
+
+<h2 id="storage-and-supported-storage-types">Storage and Supported Storage Types</h2>
+
+<ul>
+  <li><strong>XCP-ng:</strong> Supports local storage, NFS, iSCSI, and HCI storage using XOSAN.</li>
+  <li><strong>Proxmox:</strong> Supports local storage, NFS, Ceph for HCI storage, and many other storage formats.</li>
+  <li><strong>Hyper-V:</strong> Supports all the same storage types as Windows OS, including local storage and shared storage via iSCSI.</li>
+  <li><strong>Nutanix:</strong> Only supports hyper-converged storage from within the cluster itself. No external storage access is supported.</li>
+</ul>
+
+<h2 id="backup-solutions">Backup Solutions</h2>
+
+<ul>
+  <li><strong>XCP-ng:</strong> Built-in backup and restore functionality, with third-party support from Commvault and talks of Veeam ongoing.</li>
+  <li><strong>Proxmox:</strong> Native backup and restore functionality through Proxmox Backup Server, with Veeam integration announced.</li>
+  <li><strong>Hyper-V:</strong> Supported by all major backup vendors, including Veeam, Commvault, Rubrik, and others.</li>
+  <li><strong>Nutanix:</strong> Native support for Veeam, Rubrik, Commvault, HYCU, and others.</li>
+</ul>
+
+<h2 id="live-migration-workload-balancing-and-high-availability">Live Migration, Workload Balancing, and High Availability</h2>
+
+<h3 id="live-migration">Live Migration</h3>
+<p>All hypervisors support live migration of virtual machine workloads between different hosts in a cluster, with the exception of Proxmox and LXC containers, which must be shut down before migrating.</p>
+
+<h3 id="automated-workload-balancing">Automated Workload Balancing</h3>
+
+<ul>
+  <li><strong>XCP-ng:</strong> Automatically migrates virtual machine workloads between hosts to balance CPU load.</li>
+  <li><strong>Proxmox:</strong> Does not have built-in automated workload balancing but can use community scripts. Automated workload balancing is on their roadmap.</li>
+  <li><strong>Hyper-V:</strong> Supports workload balancing for both RAM and CPU utilization using Hyper-V Failover Cluster Manager.</li>
+  <li><strong>Nutanix:</strong> Natively supports workload balancing across the cluster.</li>
+</ul>
+
+<p>All four hypervisors also support high availability as a core feature of their clustering and will restart VMs on different hosts in the cluster if a host fails or goes offline.</p>
+
+<h2 id="user-interface-and-experience">User Interface and Experience</h2>
+
+<ul>
+  <li><strong>XCP-ng:</strong> Xen Orchestra GUI is functional but feels dated. A refreshed UI/UX is in development.</li>
+  <li><strong>Proxmox:</strong> The UI/UX is cluttered and needs improvement, though it has great graphing and extensive functionality.</li>
+  <li><strong>Hyper-V:</strong> The worst experience, using the Microsoft Management Console framework, which is dull and fragmented.</li>
+  <li><strong>Nutanix:</strong> Prism Element and Prism Central provide a clean, elegant, and highly functional user experience.</li>
+</ul>
+
+<h2 id="minimum-hardware-requirements">Minimum Hardware Requirements</h2>
+
+<ul>
+  <li><strong>XCP-ng:</strong> Requires a 64-bit x86 CPU (1.5GHz minimum, 2GHz recommended), 2GB of RAM (4GB recommended), and 46GB of disk space (70GB recommended).</li>
+  <li><strong>Proxmox:</strong> Requires a 64-bit x86 CPU, 1GB of RAM (2GB recommended), and does not list a minimum storage requirement.</li>
+  <li><strong>Hyper-V:</strong> Requires a 64-bit x86 CPU (1.4GHz minimum), 2GB of RAM, and 32GB of storage space for the OS install.</li>
+  <li><strong>Nutanix:</strong> Requires Intel Sandy Bridge or newer, or AMD Zen or newer, 32GB of RAM, and specific storage requirements for cold and hot storage tiers.</li>
+</ul>
+
+<h2 id="cost-and-support">Cost and Support</h2>
+
+<ul>
+  <li><strong>XCP-ng:</strong> Vates offers VMS Pro ($1000 per host per year) and VMS Enterprise ($1800 per host per year).</li>
+  <li><strong>Proxmox:</strong> Four support tiers: Community (€100 per socket per year), Basic (€340 per socket per year), Standard (€510 per socket per year), and Premium (€1020 per socket per year).</li>
+  <li><strong>Hyper-V:</strong> Pricing depends on the Windows Server version (Datacenter: $6,155 USD, Standard: $1,069 USD). Support is additional.</li>
+  <li><strong>Nutanix:</strong> Pricing is not publicly disclosed, sold through VARs, and available as a turn-key deployment or software-only solution.</li>
+</ul>
+
+<h2 id="final-thoughts">Final Thoughts</h2>
+
+<p>The hypervisor and on-premise virtualization space has seen incredible changes. Choosing the right hypervisor depends on your specific needs and priorities:</p>
+
+<ul>
+  <li><strong>XCP-ng:</strong> Best for those familiar with VMware.</li>
+  <li><strong>Proxmox:</strong> Ideal for older hardware and LXC container support.</li>
+  <li><strong>Hyper-V:</strong> Suitable for Windows-centric environments.</li>
+  <li><strong>Nutanix:</strong> Offers a stellar user experience but is limited to HCI.</li>
+</ul>]]></content><author><name>2GT_Rich</name></author><category term="VMware" /><category term="XCP-ng" /><category term="Proxmox" /><category term="Hyper-V" /><category term="Nutanix" /><category term="virtualization" /><summary type="html"><![CDATA[]]></summary></entry><entry><title type="html">Evaluating XCP-ng as an Alternative to VMware ESXi</title><link href="https://2guystek.tv/jekyll-theme-yat/2024/02/04/evaluating-xcp-ng.html" rel="alternate" type="text/html" title="Evaluating XCP-ng as an Alternative to VMware ESXi" /><published>2024-02-04T00:00:00+00:00</published><updated>2024-02-04T00:00:00+00:00</updated><id>https://2guystek.tv/jekyll-theme-yat/2024/02/04/evaluating-xcp-ng</id><content type="html" xml:base="https://2guystek.tv/jekyll-theme-yat/2024/02/04/evaluating-xcp-ng.html"><![CDATA[<p><img src="//youtu.be/cSwmtg7sJb4" alt="" /></p>
+
+<p>With Broadcom’s acquisition of VMware, many homelab enthusiasts and small to medium businesses are reconsidering their virtualization options. VMware’s uncertain future has prompted a search for reliable, open-source alternatives. One such option is XCP-ng, a powerful and cost-effective alternative to VMware ESXi.</p>
+
+<h2 id="background-on-xcp-ng">Background on XCP-ng</h2>
+
+<p>XCP-ng originated from the Xen Cloud Platform and Citrix XenServer. Citrix’s decision to open-source XenServer aimed to cut costs and compete with VMware and Microsoft. However, users were reluctant to pay for maintenance and support, leading Citrix to reintroduce limitations on the free version by 2017. This shift catalyzed the birth of XCP-ng, officially released on March 31, 2018. Since then, XCP-ng has grown, offering multiple versions and an active community.</p>
+
+<h2 id="comparing-xcp-ng-and-esxi">Comparing XCP-ng and ESXi</h2>
+
+<h3 id="architecture">Architecture</h3>
+
+<p>Both XCP-ng and VMware ESXi are type-1 hypervisors. VMware ESXi is lightweight, running from RAM after boot, with a closed-source kernel. XCP-ng, based on the Linux kernel, also uses disk storage for operational needs after booting.</p>
+
+<h3 id="performance">Performance</h3>
+
+<p>Performance between XCP-ng and ESXi is nearly equivalent, though historical reports indicated I/O performance issues with XCP-ng under certain workloads. However, modern updates have largely mitigated these differences. It’s essential to consider the specific workloads and configurations when evaluating performance.</p>
+
+<h3 id="usability">Usability</h3>
+
+<ul>
+  <li><strong>VMware ESXi:</strong> Excels in usability with a built-in web-based HTML5 GUI, allowing complete management of a single host without additional steps. This intuitive interface simplifies tasks like building and managing VMs, configuring vSwitches, and handling datastores.</li>
+  <li><strong>XCP-ng:</strong> A fresh deployment lacks a local web GUI for host management. Instead, users must deploy XenOrchestra (XOA), which, while offering a rich feature set, adds complexity to the initial setup.</li>
+</ul>
+
+<h3 id="features">Features</h3>
+
+<ul>
+  <li><strong>ESXi:</strong> Advanced features, including distributed resource scheduling (DRS), high availability (HA), fault tolerance, vMotion (live migration of VMs), storage vMotion, and API control, require additional licensing.</li>
+  <li><strong>XCP-ng:</strong> Includes clustering, live migrations, VM backup functionality, and automation via API calls out-of-the-box for free. With the exception of DRS, XCP-ng’s feature set closely matches that of VMware’s licensable features, providing a compelling alternative for users on a budget.</li>
+</ul>
+
+<h3 id="scalability">Scalability</h3>
+
+<ul>
+  <li><strong>ESXi:</strong> Renowned for its scalability, capable of managing thousands of VMs and extensive clusters. It is used in some of the largest virtual environments globally, thanks to its robust architecture and comprehensive management tools.</li>
+  <li><strong>XCP-ng:</strong> Also supports large environments, though its adoption in complex setups is less common compared to ESXi. Xen Orchestra’s concept of pools (analogous to VMware’s clusters) allows for the management of large collections of hosts and VMs, supporting significant scaling needs.</li>
+</ul>
+
+<h3 id="support">Support</h3>
+
+<ul>
+  <li><strong>VMware:</strong> Offers extensive professional support, training, certifications, a well-maintained public knowledge base, and a large community. However, with Broadcom’s acquisition, the future of this support structure is uncertain.</li>
+  <li><strong>XCP-ng:</strong> Relies more on community support, which is active and growing. Professional support services are available through vendors like Vates, the company actively developing XCP-ng. This blend of community-driven and professional support ensures users can find help when needed.</li>
+</ul>
+
+<h3 id="cost">Cost</h3>
+
+<ul>
+  <li><strong>VMware:</strong> Recent licensing changes make it less accessible to smaller users. The ESXi free version has limitations, and additional features require costly licenses.</li>
+  <li><strong>XCP-ng:</strong> Entirely free and open-source, making it more cost-effective, especially for smaller deployments. Professional support services are available for a fee, but overall, XCP-ng remains budget-friendly, providing significant value without compromising functionality.</li>
+</ul>
+
+<h2 id="real-world-comparison">Real-World Comparison</h2>
+
+<h3 id="console-and-management-interface">Console and Management Interface</h3>
+
+<ul>
+  <li><strong>ESXi:</strong> Provides basic host information and management functions through a console, with extensive management via a web-based GUI. The ESXi console offers details about the physical host, including version information, hardware specifications, and management interface settings. Basic management functions like configuring the management interface, enabling SSH, and managing host power states are available from the console.</li>
+  <li><strong>XCP-ng:</strong> Offers comprehensive host management from the console, including VM management, storage, and network configuration, surpassing ESXi in console capabilities. XCP-ng’s console allows users to start and stop VMs, manage storage, join or leave resource pools, and view detailed hardware information. This robust console management is a significant advantage for users who prefer direct control over their hosts.</li>
+</ul>
+
+<h3 id="web-management-interface">Web Management Interface</h3>
+
+<ul>
+  <li><strong>ESXi:</strong> The web UI offers a polished experience with detailed host, VM, storage, and network management. The interface is intuitive, providing a clear overview of the host’s state, usage, vSwitch and port group configurations, datastores, and system information. Detailed tabs allow for in-depth management of virtual machines, storage systems, and network configurations.</li>
+  <li><strong>XCP-ng (XOA):</strong> The interface feels cluttered but provides extensive functionality, including managing multiple hosts, pools, and VM backups. The XOA dashboard offers an overview of pools, hosts, and VMs, with detailed statistics and performance graphs available through various tabs. While the interface is less polished than ESXi’s, it includes advanced features like VM backup and restore, which are not available in ESXi’s free version.</li>
+</ul>
+
+<h2 id="detailed-evaluation">Detailed Evaluation</h2>
+
+<h3 id="user-experience">User Experience</h3>
+
+<p>Xen Orchestra, as an interface, leaves much to be desired in terms of aesthetics and user experience. The first impression is that it looks like many other generic open-source web GUIs, with wasted space and sections that feel disorganized. Despite its functional capabilities, the user experience could be significantly improved to make it more enjoyable to use. The organization of information and the presentation in XOA often feels like an afterthought compared to VMware’s polished interface.</p>
+
+<h3 id="premium-features-and-paywalls">Premium Features and Paywalls</h3>
+
+<p>One of the frustrations with XOA is the seemingly arbitrary paywalls for certain features. For example, visualizations and statistics on the dashboard are behind a premium license, while similar information is accessible in other sections. Host updates require a paid license, though XOA updates do not. These inconsistencies can be annoying, especially for users accustomed to fully-featured open-source solutions. However, it’s worth noting that compiling Xen Orchestra from source can unlock these features without additional cost, though this approach requires technical proficiency.</p>
+
+<h3 id="functionality-and-configurability">Functionality and Configurability</h3>
+
+<p>Despite these drawbacks, XCP-ng offers impressive functionality. The extensive host management capabilities from the console, the ability to create pools of hosts, live migrate workloads, enable high availability, and built-in VM backup functionality are standout features. XCP-ng’s native backup capabilities eliminate the need for third-party software, providing a significant advantage over VMware, which requires additional licensing for similar features.</p>
+
+<h3 id="network-configuration">Network Configuration</h3>
+
+<p>ESXi’s virtual network configuration is more complex and offers greater configurability, with visual representations of how VMs connect to virtual networks. XCP-ng’s approach is simpler but effective, with PIFs (physical interface configurations) analogous to port groups and vSwitches in ESXi. Private networks in XCP-ng provide segmented internal communication for VMs within a host, adding flexibility to network configurations.</p>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>After extensive use, XCP-ng proves to be a robust and feature-rich alternative to VMware ESXi. It meets the general needs of host and VM management and offers many advanced features without additional cost. The user experience and interface design could benefit from improvements, but the core functionality and configurability make XCP-ng a compelling choice.</p>
+
+<p>For those seeking a cost-effective, open-source virtualization solution, XCP-ng is a strong contender. It offers significant value, especially for homelab enthusiasts and small to medium businesses with budget constraints. The next step in our exploration will be evaluating Proxmox, so stay tuned for that assessment.</p>]]></content><author><name>2GT_Rich</name></author><category term="VMware" /><category term="XCP-ng" /><category term="virtualization" /><summary type="html"><![CDATA[]]></summary></entry></feed>
