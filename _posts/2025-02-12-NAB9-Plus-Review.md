@@ -5,7 +5,7 @@ date: 2025-06-07
 author: 2GT_Rich
 categories: markdown
 banner:
-  image: assets/images/post-pics/NAB9_Plus.png
+  image: assets/images/post-pics/NAB9-Plus.jpg
 tags: [mini pc, hardware, virtualization]
 ---
 
