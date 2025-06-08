@@ -3,6 +3,8 @@ layout: post
 title: "The Minisforum NAB9 Plus: The Perfect Starter Homelab Server?"
 date: 2025-06-07
 author: 2GT_Rich
+banner:
+  image: assets/images/post-pics/NAB9 Plus.png
 tags: [mini pc, hardware, virtualization]
 
 ---
@@ -16,13 +18,11 @@ Enter the **Minisforum NAB9 Plus** — a mini-PC that just might check all the r
 In this post, I’ll walk you through my experience testing this unit for homelabbing and show you why I think it’s an excellent place to start.
 
 ---
-
 ## Disclosure
 
 Minisforum did send me the NAB9 Plus for free. However, this is **not a sponsored post** — they had no say in its content and are seeing it for the first time just like you. As always, these are my own opinions.
 
 ---
-
 ## Why I’m Excited About This System
 
 The NAB9 Plus delivers a rare combination of **power**, **storage options**, and **efficiency** — making it a compelling homelab starter system.
@@ -37,9 +37,7 @@ Let’s start with the specs:
 - **RAM**: 32GB DDR4 3200MHz
 - **Storage**: 1TB NVMe SSD
 - **Connectivity**: WiFi 6E + Bluetooth 5.2
-
 ---
-
 ## Size & Connectivity
 
 The NAB9 Plus is compact:
@@ -63,9 +61,7 @@ The NAB9 Plus is compact:
 - 1x DisplayPort 1.4 (4K @ 120Hz)  
 - 1x USB 4 Type-C (also supports power delivery)  
 - 1x Barrel connector for power  
-
 ---
-
 ## Easy Access to Internals
 
 I love the design here — no screwdriver required. Just press down on the two front edges and the lid pops open.
@@ -76,21 +72,17 @@ Inside, you’ll find:
 - WiFi 6E card  
 - 2x 16GB DDR4 SO-DIMMs (for 32GB total RAM)  
 - SATA connector header (we’ll get to that in a moment)
-
 ---
-
 ## Price Point
 
 The NAB9 Plus typically retails for around **$480** on [Amazon](https://www.amazon.com), but I’ve seen it on sale for even less — keep an eye out!
 
 ---
-
 ## That OCuLink Port
 
 **OCuLink** is essentially an external PCIe 4.0 x4 connector. While some use it for external GPUs, I think its real value here could be attaching a RAID card and external storage for homelab expansion. A potential topic for a future video!
 
 ---
-
 ## Setting It Up as a Homelab Server
 
 For the OS, **Proxmox Virtual Environment (PVE)** is a natural choice — it allows you to run multiple VMs and LXC containers on one system.
@@ -108,9 +100,7 @@ Installing it was simple:
 1. Plug the SATA cable into the mainboard  
 2. Mount SSD into lid  
 3. Close it up  
-
 ---
-
 ## First Boot & BIOS
 
 Out of the box, the NAB9 Plus ships with **Windows 11 Home** — nice if you want a turnkey Windows PC.
@@ -118,7 +108,6 @@ Out of the box, the NAB9 Plus ships with **Windows 11 Home** — nice if you wan
 I also explored the BIOS, which is fully modern with a simple GUI and mouse support. Well done, Minisforum.
 
 ---
-
 ## Installing Proxmox
 
 The Proxmox install went off without a hitch:
@@ -137,7 +126,6 @@ I then:
 Now ready for workloads!
 
 ---
-
 ## Performance Testing
 
 ### Network Throughput
@@ -155,9 +143,7 @@ I ran `iperf3` from an Ubuntu 24.04 LXC container:
 #### Write Speed (NVMe SSD)
 
 - Average: **3,570 MiB/s (~3.66 GB/s)** — equally impressive.
-
 ---
-
 ## Power Consumption
 
 I tested the system at various loads:
@@ -169,7 +155,6 @@ I tested the system at various loads:
 Very **energy-efficient** compared to traditional rack servers.
 
 ---
-
 ## Final Thoughts
 
 ### Pros
@@ -192,7 +177,6 @@ Very **energy-efficient** compared to traditional rack servers.
 The i9-12900HK features a mix of **performance** and **efficiency** cores. You can manually pin VMs to specific cores via **Proxmox CPU affinity** if needed, but for most homelab workloads, this shouldn’t be necessary.
 
 ---
-
 ## Should You Buy It?
 
 If you’re looking for a compact, affordable, and capable **first homelab server**, the **Minisforum NAB9 Plus** is an excellent option.
@@ -200,7 +184,6 @@ If you’re looking for a compact, affordable, and capable **first homelab serve
 It’s not going to compete with the big iron servers in my rack — but for starting out, it’s hard not to love this little box. Plus, if you ever change your mind about homelabbing, you can always reinstall Windows and use it as a fast mini-PC!
 
 ---
-
 *Happy homelabbing! If you enjoyed this post, be sure to check out more of my homelab content on [2GuysTek on YouTube](https://www.youtube.com/@2GuysTek).*
 
 ---
