@@ -4,7 +4,7 @@ title: "The Minisforum NAB9 Plus: The Perfect Starter Homelab Server?"
 date: 2025-06-07
 author: 2GT_Rich
 banner:
-  image: assets/images/post-pics/NAB9 Plus.png
+  image: assets/images/post-pics/NAB9_Plus.png
 tags: [mini pc, hardware, virtualization]
 
 ---
