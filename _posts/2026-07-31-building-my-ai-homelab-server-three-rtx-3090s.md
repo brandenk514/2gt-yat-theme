@@ -6,11 +6,11 @@ categories: [Homelab, AI, Infrastructure]
 tags: [AI, LLM, Homelab, RTX3090, Threadripper, Ollama, OpenWebUI, Docker, NVIDIA, Ubuntu, RAG, Qdrant, DigitalSovereignty]
 description: "Part 1 of my local AI server build: three RTX 3090s, a Threadripper PRO, 72GB of VRAM, and the full step-by-step for getting Ubuntu, the NVIDIA drivers, Docker, and a complete self-hosted AI stack running."
 banner:
-  image: https://img.youtube.com/vi/PLACEHOLDER_VIDEO_ID/maxresdefault.jpg
+  image: https://img.youtube.com/vi/TRpr_qKydSo/maxresdefault.jpg
   opacity: 0.618
 ---
 
-![](//youtu.be/PLACEHOLDER_VIDEO_ID)
+![](//youtu.be/TRpr_qKydSo)
 
 This is the companion post for the video where I built my first purpose-built local AI server. If you came here looking for the exact commands and the full Docker Compose file to follow along, they're all below. If you want the "why," keep reading from the top.
 
